@@ -2,22 +2,19 @@
 
 What's planned for Pilot Stats, roughly in order. Released work is in the [changelog](CHANGELOG.md).
 
-## For pilots
+## Next
 
-1. **ISK per hour** *(in review)*. Bounty and mission payouts earned during a logged session, divided by its length. Shown on the session page, and as a leaderboard column weighted by logged hours.
-2. **Damage-over-time chart on the session page** *(in review)*. Per-minute DPS and reps for the session, to show ramp-up, downtime between waves, and when logi was busy. Needs per-minute totals stored with each session.
-3. **Personal trends** *(in review)*. A "My stats" page with DPS, ISK/h and rats killed per week over time, and the pilot's personal records.
+1. **Leaderboard caching.** The leaderboard is computed on every page load. A short cache, cleared when new data arrives, keeps it fast as months of sessions, payouts and killmails build up.
+2. **AA Desktop integration, the app side.** Pilot Stats' half is done (see below). What's left lives in the AA Desktop app: running from the tray with a Pilot Stats panel, and an installer with updates. The in-browser folder scanner on the Upload page stays for everyone else.
 
-## For fleets and leadership
+## Done, not released yet
 
-4. **Activity type per session** *(in review)*. Classify sessions as anomalies, incursions, abyssals, missions and so on, from the NPC types in bounty ticks and combat logs, so the leaderboard compares like with like.
-5. **Corporation and alliance totals** *(in review)*. Weekly and monthly totals per corporation next to the per-pilot leaderboard, plus a CSV export.
+These are merged and listed under "Unreleased" in the [changelog](CHANGELOG.md). They ship with the next release.
 
-## Quality and upkeep
-
-6. **MariaDB in CI.** Real sites run MariaDB or MySQL, and the rename upgrade has a MySQL-specific path. CI only runs SQLite today.
-7. **Leaderboard caching.** The leaderboard is computed on every page load. A short cache, cleared when new data arrives, keeps it fast as months of sessions, payouts and killmails build up.
-
-## Automatic upload without a browser tab
-
-8. **AA Desktop integration.** The AA Desktop app watches the Gamelogs folder and uploads new and grown logs through the AA Desktop bridge, signed in with the pilot's Alliance Auth login. Pilot Stats' side is a small optional hook with an upload endpoint. The in-browser folder scanner on the Upload page stays for everyone else.
+- **ISK per hour.** Bounty and mission payouts earned during a logged session, divided by its length. Shown on the session page, and as a leaderboard column weighted by logged hours.
+- **Damage-over-time chart on the session page.** Per-minute DPS and reps for the session, to show ramp-up, downtime between waves, and when logi was busy.
+- **Personal trends.** A "My Stats" page with DPS, ISK/h and rats killed per week, and the pilot's personal records.
+- **Activity type per session.** Sessions are classified as ratting, incursions, abyssals, missions or other, so the leaderboard can compare like with like.
+- **Corporation and alliance totals.** Totals per corporation or alliance next to the per-pilot leaderboard, plus a CSV export.
+- **MariaDB in CI.** The test suite also runs on MariaDB 10.11 and 11.8, not only SQLite.
+- **AA Desktop upload endpoint.** An optional hook the AA Desktop app uses to upload new and grown Gamelogs, signed in with the pilot's Alliance Auth login.
