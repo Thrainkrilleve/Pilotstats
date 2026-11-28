@@ -175,6 +175,7 @@ Optional, in `local.py`:
 | `PILOTSTATS_PAYOUT_RETENTION_DAYS` | `35` | Days itemized payout lines are kept (daily totals are kept longer). |
 | `PILOTSTATS_SESSION_LINK_MINUTES` | `15` | How far before and after a session kills and fleet hulls are matched to it. |
 | `PILOTSTATS_PAYOUT_TAIL_MINUTES` | `20` | How long after a session ends its last bounty tick can still arrive. Payouts, rats and ISK per hour count from the session start to this long after its end. |
+| `PILOTSTATS_ESS_MAX_DELAY_HOURS` | `4` | ISK per hour adds each bounty tick's ESS share: every ESS escrow transfer is split over the bounty ticks since the previous one, in proportion to their size. Ticks older than this before a transfer get none of it (the bank was robbed, or there was no ESS). |
 | `PILOTSTATS_ZKILL_AUTO_STATES` | `["Member"]` | Auth states whose mains' corporations and alliances are tracked on zKill automatically. |
 | `PILOTSTATS_R2Z2_MAX_PER_RUN` | `300` | zKill sequence files read per run of `drain_r2z2`. |
 | `PILOTSTATS_R2Z2_REQUEST_INTERVAL` | `0.15` | Seconds between zKill requests (their limit is 15 a second per IP). |

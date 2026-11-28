@@ -63,7 +63,7 @@
                     {% if not activity %}
                     <th class="text-end pstats-col-sep" title="{% trans 'Bounty, ESS and mission payouts from the wallet journal' %}">{% trans "Payout ISK" %}</th>
                     {% endif %}
-                    <th class="text-end{% if activity %} pstats-col-sep{% endif %}" title="{% trans 'Bounty and mission payouts earned during logged sessions, per hour of those sessions (sessions of 10 minutes or more; ESS escrow not included)' %}">{% trans "ISK/h" %}</th>
+                    <th class="text-end{% if activity %} pstats-col-sep{% endif %}" title="{% trans 'Bounties (with their ESS share) and mission rewards earned during logged sessions, per hour of those sessions (sessions of 10 minutes or more)' %}">{% trans "ISK/h" %}</th>
                     {% if not activity %}
                     <th class="text-end" title="{% trans 'NPCs killed, from bounty ticks' %}">{% trans "Rats" %}</th>
                     <th class="text-end pstats-col-sep" title="{% trans 'Kills / losses from zKillboard' %}">{% trans "Kills / Losses" %}</th>
