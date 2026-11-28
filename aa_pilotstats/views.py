@@ -546,6 +546,10 @@ def session_detail(request, pk):
     })
 
 
+# Key for a session's ESS share in the Payouts tile (not a journal type).
+ESS_SHARE = "ess_share"
+
+
 def _session_links(session) -> dict:
     """Payouts, rats, kills/losses, and hull for the session's character and time window.
 
@@ -561,17 +565,18 @@ def _session_links(session) -> dict:
         session.session_started,
         session.session_ended + timedelta(minutes=PAYOUT_TAIL_MINUTES),
     )
-    payouts = list(
-        Payout.objects.filter(character=session.character, occurred_at__range=payout_window)
-        .only("entry_type", "amount", "npc_kills")
-    )
-    payout_total = sum((p.amount for p in payouts), Decimal(0))
+    # ESS transfers aren't listed by when they arrived; each bounty tick
+    # brings its share instead, the same as ISK per hour.
+    lines = payouts.earned_lines(session.character, *payout_window)
     by_type: dict = {}
     rats: dict = {}
-    for payout in payouts:
-        by_type[payout.entry_type] = by_type.get(payout.entry_type, Decimal(0)) + payout.amount
-        for type_id, count in (payout.npc_kills or {}).items():
+    for line in lines:
+        by_type[line.entry_type] = by_type.get(line.entry_type, Decimal(0)) + line.amount
+        if line.ess_share:
+            by_type[ESS_SHARE] = by_type.get(ESS_SHARE, Decimal(0)) + line.ess_share
+        for type_id, count in (line.npc_kills or {}).items():
             rats[int(type_id)] = rats.get(int(type_id), 0) + count
+    payout_total = sum(by_type.values(), Decimal(0))
     participants = list(
         KillmailParticipant.objects.filter(
             character=session.character, killmail__killmail_time__range=(start, end),
@@ -582,14 +587,14 @@ def _session_links(session) -> dict:
     return {
         "payout_total": payout_total,
         "payouts_by_type": sorted(by_type.items(), key=lambda kv: kv[1], reverse=True),
-        "payout_count": len(payouts),
+        "payout_count": len(lines),
         "rats": sorted(rats.items(), key=lambda kv: kv[1], reverse=True),
         "rat_total": sum(rats.values()),
         "kills": [p for p in participants if not p.is_victim],
         "losses": [p for p in participants if p.is_victim],
         "hull": hull,
         "names": typenames.names(ids),
-        "payout_labels": dict(Payout.EntryType.choices),
+        "payout_labels": {**dict(Payout.EntryType.choices), ESS_SHARE: _("ESS share")},
         "window_minutes": SESSION_LINK_MINUTES,
         "tail_minutes": PAYOUT_TAIL_MINUTES,
     }

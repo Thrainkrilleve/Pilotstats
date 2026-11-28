@@ -7,7 +7,7 @@ Run `migrate` (adds `0004_combatlogupload_payout_isk`, `0005_combatlogupload_tim
 - **ISK per hour.** Each session stores the bounty and mission payouts its character earned from the first combat line until 20 minutes after the last one, the bounty tick interval (`PILOTSTATS_PAYOUT_TAIL_MINUTES`).
   - **Session page:** a new "ISK per hour" tile.
   - **Leaderboard:** a sortable **ISK/h** column, weighted by logged hours: total earned ISK divided by total session time, not an average of per-session rates.
-  - **What counts:** ESS escrow is left out, since it's paid hours later in one lump. Sessions under 10 minutes get no rate. A payout two overlapping sessions could claim goes to the later one, so nothing is counted twice.
+  - **What counts:** bounties, mission rewards, and the bounties' ESS share. Each ESS escrow transfer is split over the bounty ticks it paid for (those since the previous transfer, up to 4 hours back, `PILOTSTATS_ESS_MAX_DELAY_HOURS`), in proportion to their size, so the ISK goes to the session that earned it, not the one running when the transfer arrived. A robbed ESS bank pays nothing, so nothing is added. The session page's Payouts tile lists the ESS share the same way. Sessions under 10 minutes get no rate. A payout two overlapping sessions could claim goes to the later one, so nothing is counted twice.
   - **No wallet connected:** pilots without one show "—", not 0.
   - **Opting out:** "Don't read my wallet" also clears this.
 - The session page's **Payouts** and **Rats killed** tiles now use the same window as ISK per hour, from the session's start to 20 minutes after its end, so the three agree. They used 15 minutes either side, which could miss the last bounty tick. Kills and the hull still use 15 minutes either side.

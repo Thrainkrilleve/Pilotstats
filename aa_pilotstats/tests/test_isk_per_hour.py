@@ -50,14 +50,13 @@ class IskPerHourTestCase(TestCase):
 
 
 class MatchingTests(IskPerHourTestCase):
-    def test_counts_bounties_and_missions_in_the_window_but_not_ess(self):
+    def test_counts_bounties_and_missions_in_the_window(self):
         self.connect_wallet()
         session = self.session(timedelta(hours=5), 60)
         start, end = session.session_started, session.session_ended
         self.pay(1, start + timedelta(minutes=20), 10 * M)                      # during
         self.pay(2, end + timedelta(minutes=19), 5 * M)                          # last tick, within 20 min
         self.pay(3, start + timedelta(minutes=30), 2 * M, "agent_mission_reward")
-        self.pay(4, start + timedelta(minutes=40), 50 * M, "ess_escrow_transfer")  # never counted
         self.pay(5, end + timedelta(minutes=30), 7 * M)                          # too late
         self.pay(6, start - timedelta(minutes=5), 7 * M)                          # before it started
         payouts.match_sessions(self.character)
@@ -133,6 +132,83 @@ class MatchingTests(IskPerHourTestCase):
         payouts.match_sessions(self.character)
         session.refresh_from_db()
         self.assertIsNone(session.payout_isk)
+
+
+class EssShareTests(IskPerHourTestCase):
+    """ESS escrow transfers are shared back onto the bounty ticks they paid for."""
+
+    def setUp(self):
+        super().setUp()
+        self.connect_wallet()
+
+    def isk(self, session):
+        payouts.match_sessions(self.character)
+        session.refresh_from_db()
+        return session.payout_isk
+
+    def test_transfer_after_the_session_counts_for_it(self):
+        session = self.session(timedelta(hours=5), 60)
+        self.pay(1, session.session_started + timedelta(minutes=20), 6 * M)
+        self.pay(2, session.session_started + timedelta(minutes=40), 6 * M)
+        # 40% of each tick went to the ESS bank; it pays out well after the session.
+        self.pay(3, session.session_ended + timedelta(minutes=50), 8 * M, "ess_escrow_transfer")
+        self.assertEqual(self.isk(session), 20 * M)
+
+    def test_one_transfer_is_split_over_two_sessions_by_size(self):
+        first = self.session(timedelta(hours=6), 30)
+        second = self.session(timedelta(hours=5), 30)
+        self.pay(1, first.session_started + timedelta(minutes=20), 10 * M)
+        self.pay(2, second.session_started + timedelta(minutes=20), 30 * M)
+        self.pay(3, second.session_ended + timedelta(minutes=5), 20 * M, "ess_escrow_transfer")  # in second's window
+        self.assertEqual(self.isk(first), 15 * M)   # 10M + 5M
+        self.assertEqual(self.isk(second), 45 * M)  # 30M + 15M; the transfer's arrival time doesn't matter
+
+    def test_a_transfer_only_covers_ticks_since_the_previous_one(self):
+        first = self.session(timedelta(hours=6), 30)
+        second = self.session(timedelta(hours=5), 30)
+        self.pay(1, first.session_started + timedelta(minutes=20), 9 * M)
+        self.pay(2, first.session_ended + timedelta(minutes=15), 6 * M, "ess_escrow_transfer")
+        self.pay(3, second.session_started + timedelta(minutes=20), 3 * M)
+        self.pay(4, second.session_ended + timedelta(minutes=15), 2 * M, "ess_escrow_transfer")
+        self.assertEqual(self.isk(first), 15 * M)
+        self.assertEqual(self.isk(second), 5 * M)
+
+    def test_ticks_too_long_before_the_transfer_get_none(self):
+        # A day apart: the first tick's bank was robbed, or it was earned without an ESS.
+        old = self.session(timedelta(hours=30), 30)
+        new = self.session(timedelta(hours=5), 30)
+        self.pay(1, old.session_started + timedelta(minutes=20), 10 * M)
+        self.pay(2, new.session_started + timedelta(minutes=20), 10 * M)
+        self.pay(3, new.session_ended + timedelta(minutes=30), 4 * M, "ess_escrow_transfer")
+        self.assertEqual(self.isk(old), 10 * M)
+        self.assertEqual(self.isk(new), 14 * M)
+
+    def test_share_arrives_with_a_later_pull(self):
+        session = self.session(timedelta(hours=5), 60)
+        self.pay(1, session.session_started + timedelta(minutes=20), 6 * M)
+        self.assertEqual(self.isk(session), 6 * M)
+        self.pay(2, session.session_ended + timedelta(minutes=40), 4 * M, "ess_escrow_transfer")
+        self.assertEqual(self.isk(session), 10 * M)
+
+    def test_missions_get_no_share_and_a_lone_transfer_counts_for_nothing(self):
+        session = self.session(timedelta(hours=5), 60)
+        self.pay(1, session.session_started + timedelta(minutes=10), 4 * M, "ess_escrow_transfer")  # nothing before it
+        self.pay(2, session.session_started + timedelta(minutes=20), 5 * M, "agent_mission_reward")
+        self.pay(3, session.session_started + timedelta(minutes=30), 2 * M, "ess_escrow_transfer")  # no ticks to share
+        self.assertEqual(self.isk(session), 5 * M)
+
+    def test_session_page_lists_the_share_and_matches_isk_per_hour(self):
+        session = self.session(timedelta(hours=5), 60)
+        self.pay(1, session.session_started + timedelta(minutes=20), 12 * M)
+        self.pay(2, session.session_ended + timedelta(minutes=60), 8 * M, "ess_escrow_transfer")  # outside the window
+        self.isk(session)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("pilotstats:session", args=[session.pk]))
+        linked = response.context["linked"]
+        self.assertEqual(linked["payout_total"], session.payout_isk)
+        self.assertEqual(dict(linked["payouts_by_type"]), {"bounty_prizes": 12 * M, "ess_share": 8 * M})
+        self.assertContains(response, "ESS share")
+        self.assertContains(response, "20.00M ISK/h")
 
 
 class TriggerTests(IskPerHourTestCase):

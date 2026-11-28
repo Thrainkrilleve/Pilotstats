@@ -8,8 +8,8 @@ type, and every field besides id / date / type / amount is dropped. For
 ``reason`` (a ``typeID: count`` list); the raw text is not stored.
 
 ``match_sessions`` turns the stored lines into each Gamelog session's
-``payout_isk`` (bounties and mission rewards earned while it ran), which
-gives ISK per hour.
+``payout_isk`` (bounties, their ESS share, and mission rewards earned while
+it ran), which gives ISK per hour. See ``earned_lines`` for the ESS share.
 """
 
 # Standard Library
@@ -32,17 +32,19 @@ from .leaderboard import invalidate_cache
 
 from esi.models import Token
 
-from .app_settings import PAYOUT_RETENTION_DAYS, PAYOUT_TAIL_MINUTES, WALLET_SCOPE
+from .app_settings import ESS_MAX_DELAY_HOURS, PAYOUT_RETENTION_DAYS, PAYOUT_TAIL_MINUTES, WALLET_SCOPE
 from .models import CombatLogUpload, NpcKillDaily, Payout, PayoutDaily, PilotSettings
 
 logger = logging.getLogger(__name__)
 
 PAYOUT_TYPES = frozenset(choice.value for choice in Payout.EntryType)
 NPC_KILL_TYPES = frozenset({Payout.EntryType.BOUNTY_PRIZES.value})
-# Payouts that count toward a session's ISK per hour. ESS escrow is left out:
-# it's paid in one lump hours after the bounties it came from, so its time
-# says nothing about which session earned it.
-EARNED_TYPES = PAYOUT_TYPES - {Payout.EntryType.ESS_ESCROW_TRANSFER.value}
+# Payouts that count toward a session's ISK per hour directly. ESS escrow is
+# paid later in one lump, so its own time says little about which session
+# earned it; it's shared back onto the bounty ticks instead (earned_lines).
+ESS_TYPE = Payout.EntryType.ESS_ESCROW_TRANSFER.value
+BOUNTY_TICK_TYPE = Payout.EntryType.BOUNTY_PRIZES.value
+EARNED_TYPES = PAYOUT_TYPES - {ESS_TYPE}
 
 
 def is_payout(ref_type: str) -> bool:
@@ -161,6 +163,46 @@ def delete_wallet_data(user) -> None:
 # ---- ISK per hour ----------------------------------------------------------------
 
 
+def earned_lines(character, since=None, until=None) -> list:
+    """*character*'s bounty and mission lines, oldest first, each with an ``ess_share``.
+
+    Where an ESS covers the system, part of every bounty tick goes to the ESS
+    bank and comes back later as one ``ess_escrow_transfer``. Each transfer is
+    split over the bounty ticks it paid for, in proportion to their size:
+    the ticks after the previous transfer, and no more than
+    ``ESS_MAX_DELAY_HOURS`` before it. Ticks whose transfer hasn't arrived
+    yet, or never will (a robbed bank, no ESS), get a share of 0.
+
+    Returns ``Payout`` rows (``ess_share`` set on each); ESS transfers
+    themselves aren't in the list. *since* / *until* limit the lines
+    returned, not the ones used to share out transfers.
+    """
+    max_delay = timedelta(hours=ESS_MAX_DELAY_HOURS)
+    rows = list(
+        Payout.objects.filter(character=character, entry_type__in=EARNED_TYPES | {ESS_TYPE})
+        .order_by("occurred_at", "ref_id")
+        .only("occurred_at", "entry_type", "amount", "npc_kills", "ref_id")
+    )
+    lines, pending = [], []
+    for row in rows:
+        if row.entry_type != ESS_TYPE:
+            row.ess_share = Decimal(0)
+            lines.append(row)
+            if row.entry_type == BOUNTY_TICK_TYPE:
+                pending.append(row)
+            continue
+        covered = [tick for tick in pending if tick.occurred_at >= row.occurred_at - max_delay]
+        base = sum((tick.amount for tick in covered), Decimal(0))
+        if base > 0:
+            for tick in covered:
+                tick.ess_share = row.amount * tick.amount / base
+        pending = []
+    return [
+        line for line in lines
+        if (since is None or line.occurred_at >= since) and (until is None or line.occurred_at <= until)
+    ]
+
+
 def wallet_tracked(character) -> bool:
     """True when *character*'s owner granted the wallet scope for it and hasn't opted out."""
     ownership = CharacterOwnership.objects.filter(character=character).first()
@@ -176,9 +218,10 @@ def match_sessions(character, now=None) -> int:
 
     A bounty or mission payout belongs to a session when it lands between the
     session's first combat line and ``PAYOUT_TAIL_MINUTES`` after its last
-    one (bounties are paid in ticks every 20 minutes). When two sessions'
-    windows overlap, the payout goes to the one that started last, so it's
-    never counted twice.
+    one (bounties are paid in ticks every 20 minutes). A bounty tick brings
+    its ESS share along (see ``earned_lines``). When two sessions' windows
+    overlap, the payout goes to the one that started last, so it's never
+    counted twice.
 
     Only sessions whose payouts are still itemized (newer than the retention
     window) are recomputed; older sessions keep the value they were given.
@@ -214,18 +257,17 @@ def match_sessions(character, now=None) -> int:
         totals = {session.pk: Decimal(0) for session in sessions}
         kinds = {session.pk: set() for session in sessions}
         starts = [session.session_started for session in sessions]
-        payouts_in_range = Payout.objects.filter(
-            character=character,
-            entry_type__in=EARNED_TYPES,
-            occurred_at__gte=sessions[0].session_started,
-            occurred_at__lte=max(session.session_ended for session in sessions) + tail,
-        ).values_list("occurred_at", "amount", "entry_type")
-        for occurred_at, amount, entry_type in payouts_in_range:
+        lines = earned_lines(
+            character,
+            since=sessions[0].session_started,
+            until=max(session.session_ended for session in sessions) + tail,
+        )
+        for line in lines:
             # The session that started last at or before the payout.
-            index = bisect.bisect_right(starts, occurred_at) - 1
-            if index >= 0 and occurred_at <= sessions[index].session_ended + tail:
-                totals[sessions[index].pk] += amount
-                kinds[sessions[index].pk].add(entry_type)
+            index = bisect.bisect_right(starts, line.occurred_at) - 1
+            if index >= 0 and line.occurred_at <= sessions[index].session_ended + tail:
+                totals[sessions[index].pk] += line.amount + line.ess_share
+                kinds[sessions[index].pk].add(line.entry_type)
 
     changed = []
     for session in sessions:

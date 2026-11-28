@@ -39,6 +39,12 @@ SESSION_LINK_MINUTES = int(getattr(settings, "PILOTSTATS_SESSION_LINK_MINUTES", 
 # this long after a session's last combat line still belongs to it.
 PAYOUT_TAIL_MINUTES = int(getattr(settings, "PILOTSTATS_PAYOUT_TAIL_MINUTES", 20))
 
+# In systems with an ESS, part of every bounty is paid later as one ESS escrow
+# transfer. Each transfer is shared out over the character's bounty ticks
+# since the previous transfer, but only ticks at most this many hours older
+# than it: older ones were robbed from the bank or earned without an ESS.
+ESS_MAX_DELAY_HOURS = float(getattr(settings, "PILOTSTATS_ESS_MAX_DELAY_HOURS", 4))
+
 # Leaderboard -----------------------------------------------------------------
 
 # Seconds a computed leaderboard is kept in Django's cache. New sessions,

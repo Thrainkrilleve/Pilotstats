@@ -27,8 +27,8 @@
         <div class="fs-5 pstats-col-isk">{{ session.isk_per_hour|isk }}/h</div>
         <span class="text-body-secondary small">
             {% blocktrans trimmed with earned=session.payout_isk|isk duration=session.duration_display minutes=linked.tail_minutes %}
-            {{ earned }} in bounties and mission rewards over {{ duration }}, counting ticks up to
-            {{ minutes }} minutes after the last combat line. ESS escrow isn't included.
+            {{ earned }} in bounties (with their ESS share) and mission rewards over {{ duration }},
+            counting ticks up to {{ minutes }} minutes after the last combat line.
             {% endblocktrans %}
         </span>
         {% elif session.payout_isk is None %}
