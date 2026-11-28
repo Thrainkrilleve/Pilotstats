@@ -38,6 +38,10 @@ Run `migrate` (adds `0004_combatlogupload_payout_isk`, `0005_combatlogupload_tim
 - New [roadmap](ROADMAP.md) with the planned work: session DPS chart, personal trends, activity types, corp totals, MariaDB CI, leaderboard caching, and AA Desktop upload.
 - **Automatic upload with AA Desktop.** When the optional `aa-desktop-bridge` plugin is installed, Pilot Stats registers a desktop module with two routes under `/api/desktop/v1/modules/pilotstats/`: `POST upload` and `GET characters`. Each needs a bearer token with the `desktop.pilotstats.upload` scope and the `pilotstats.basic_access` permission. Uploads use the folder scanner's code, results and per-user limit. Setup is in the README under "Automatic upload with AA Desktop". Without the bridge nothing changes.
 - The JSON upload path is now one function, `views.upload_json`, shared by the folder scanner, multi-file drop and AA Desktop. Behavior is unchanged.
+- **Leaderboard caching.** The leaderboard, the rank on My Uploads, and the dashboard widget reuse a computed board instead of rebuilding it on every page load.
+  - **When it clears:** right away, once a new or deleted session, wallet pull, killmail, wallet opt-out, or change of main is saved.
+  - **How long it's kept:** otherwise up to 5 minutes (`PILOTSTATS_LEADERBOARD_CACHE_SECONDS`, `0` turns it off), so a renamed character shows its new name within that time.
+  - **Where:** Alliance Auth's own cache (Redis). Nothing to set up. The Discord daily post still reads the live numbers.
 
 ## v0.1.1
 

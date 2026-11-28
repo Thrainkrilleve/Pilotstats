@@ -124,6 +124,11 @@ ALLOWED_HOSTS = ["*"]
 DEFAULT_THEME = "allianceauth.theme.flatly.auth_hooks.FlatlyThemeHook"
 LOGIN_TOKEN_SCOPES = ["publicData"]
 
+# Tests share one Redis, so a cached leaderboard could leak from one test
+# into the next. Caching is off here; test_leaderboard_cache turns it on
+# with a private in-memory cache.
+PILOTSTATS_LEADERBOARD_CACHE_SECONDS = 0
+
 # Placeholder SSO settings so the esi system check can pass. Not real credentials.
 ESI_SSO_CLIENT_ID = "example-client-id"
 ESI_SSO_CLIENT_SECRET = "example-client-secret"

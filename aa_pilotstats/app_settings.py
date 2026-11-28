@@ -39,6 +39,13 @@ SESSION_LINK_MINUTES = int(getattr(settings, "PILOTSTATS_SESSION_LINK_MINUTES", 
 # this long after a session's last combat line still belongs to it.
 PAYOUT_TAIL_MINUTES = int(getattr(settings, "PILOTSTATS_PAYOUT_TAIL_MINUTES", 20))
 
+# Leaderboard -----------------------------------------------------------------
+
+# Seconds a computed leaderboard is kept in Django's cache. New sessions,
+# payouts and killmails clear it at once, so this mostly bounds how long a
+# renamed character or a changed main shows the old name. 0 turns caching off.
+LEADERBOARD_CACHE_SECONDS = int(getattr(settings, "PILOTSTATS_LEADERBOARD_CACHE_SECONDS", 300))
+
 # zKillboard R2Z2 ---------------------------------------------------------------
 
 R2Z2_URL = getattr(settings, "PILOTSTATS_R2Z2_URL", "https://r2z2.zkillboard.com/ephemeral").rstrip("/")

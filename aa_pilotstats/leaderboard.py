@@ -9,9 +9,12 @@ columns. Damage, ISK, and kill value are never added together.
 """
 
 # Standard Library
+import uuid
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
+
+from .app_settings import LEADERBOARD_CACHE_SECONDS
 
 SUM_FIELDS = (
     "damage_out",
@@ -240,6 +243,72 @@ def leaderboard_rows(
         sort_key = normalize_sort_key(sort_key, tuple(sum_fields) + SOURCE_FIELDS)
         rows.sort(key=lambda row: row.get(sort_key) or 0, reverse=True)
     return rows
+
+
+# ---- Cache ------------------------------------------------------------------------
+
+# Every cached leaderboard's key includes this version. Bumping it makes all
+# of them stale at once; the old entries expire on their own.
+CACHE_VERSION_KEY = "pilotstats:leaderboard:version"
+
+
+def _cache_key(version, range_key, sort_key, activity) -> str:
+    return f"pilotstats:leaderboard:{version}:{range_key}:{sort_key}:{activity or '-'}"
+
+
+def cached_leaderboard_rows(range_key="30d", sort_key="damage_out", *, activity=None):
+    """``leaderboard_rows`` through Django's cache, for the web pages.
+
+    Kept for ``PILOTSTATS_LEADERBOARD_CACHE_SECONDS`` and cleared by
+    ``invalidate_cache`` whenever sessions, payouts, rat counts, killmails,
+    or who owns which character change. Arguments are normalized first, so
+    odd query strings can't fill the cache with copies of the same board.
+    """
+    from .models import CombatLogUpload
+
+    if range_key not in RANGE_DAYS:
+        range_key = "all"
+    sort_key = normalize_sort_key(sort_key, SORT_FIELDS)
+    if activity not in CombatLogUpload.Activity.values:
+        activity = None
+    if LEADERBOARD_CACHE_SECONDS <= 0:
+        return leaderboard_rows(range_key, sort_key, activity=activity)
+
+    # Django
+    from django.core.cache import cache
+
+    version = cache.get(CACHE_VERSION_KEY)
+    if version is None:
+        cache.add(CACHE_VERSION_KEY, uuid.uuid4().hex, timeout=None)
+        version = cache.get(CACHE_VERSION_KEY)
+    key = _cache_key(version, range_key, sort_key, activity)
+    rows = cache.get(key)
+    if rows is None:
+        rows = leaderboard_rows(range_key, sort_key, activity=activity)
+        cache.set(key, rows, timeout=LEADERBOARD_CACHE_SECONDS)
+    return rows
+
+
+def invalidate_cache() -> None:
+    """Make every cached leaderboard stale once the current transaction commits.
+
+    Waiting for the commit means a page that loads in between can't cache
+    the old numbers under the new version. A rolled-back write changes
+    nothing, so it clears nothing.
+    """
+    if LEADERBOARD_CACHE_SECONDS <= 0:
+        return
+    # Django
+    from django.db import transaction
+
+    transaction.on_commit(_bump_cache_version)
+
+
+def _bump_cache_version() -> None:
+    # Django
+    from django.core.cache import cache
+
+    cache.set(CACHE_VERSION_KEY, uuid.uuid4().hex, timeout=None)
 
 
 def character_buckets(character_pks) -> dict:

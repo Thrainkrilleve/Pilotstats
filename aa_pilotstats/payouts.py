@@ -28,6 +28,8 @@ from django.utils import timezone
 # Alliance Auth
 from allianceauth.authentication.models import CharacterOwnership
 
+from .leaderboard import invalidate_cache
+
 from esi.models import Token
 
 from .app_settings import PAYOUT_RETENTION_DAYS, PAYOUT_TAIL_MINUTES, WALLET_SCOPE
@@ -132,6 +134,7 @@ def store_journal(character, entries) -> int:
             )
             if not created:
                 NpcKillDaily.objects.filter(pk=obj.pk).update(count=F("count") + count)
+        invalidate_cache()  # the F() updates above don't send signals
     return len(new_rows)
 
 
@@ -148,6 +151,7 @@ def delete_wallet_data(user) -> None:
     PayoutDaily.objects.filter(character_id__in=character_ids).delete()
     NpcKillDaily.objects.filter(character_id__in=character_ids).delete()
     CombatLogUpload.objects.filter(character_id__in=character_ids).update(payout_isk=None, activity="")
+    invalidate_cache()
     # Activities that came from the wallet go; what the NPC names say stays.
     classify_unmatched(
         CombatLogUpload.objects.filter(character_id__in=character_ids).only("pk", "activity", "top_targets")
@@ -235,6 +239,7 @@ def match_sessions(character, now=None) -> int:
             changed.append(session)
     if changed:
         CombatLogUpload.objects.bulk_update(changed, ["payout_isk", "activity"])
+        invalidate_cache()
     return len(changed)
 
 
@@ -256,4 +261,5 @@ def classify_unmatched(sessions) -> int:
             changed.append(session)
     if changed:
         CombatLogUpload.objects.bulk_update(changed, ["activity"])
+        invalidate_cache()
     return len(changed)

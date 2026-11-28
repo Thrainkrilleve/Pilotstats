@@ -60,8 +60,8 @@ from .leaderboard import (
     DETAIL_FIELDS,
     SORT_FIELDS,
     SUM_FIELDS,
+    cached_leaderboard_rows,
     group_rows,
-    leaderboard_rows,
     normalize_sort_key,
     rank_of,
     within_days,
@@ -220,7 +220,7 @@ def leaderboard(request):
     group = request.GET.get("group", "")
     if group not in ("corporation", "alliance"):
         group = ""
-    rows = leaderboard_rows(range_key, sort_key, activity=activity or None)
+    rows = cached_leaderboard_rows(range_key, sort_key, activity=activity or None)
     groups = group_rows(rows, by=group, sort_key=sort_key) if group else None
 
     if request.GET.get("format") == "csv":
@@ -640,7 +640,7 @@ def _my_uploads_context(user, confirm_delete=None):
         .select_related("character")
         .defer(*DETAIL_FIELDS)
     )
-    rows = leaderboard_rows("30d", "damage_out")
+    rows = cached_leaderboard_rows("30d", "damage_out")
     return {
         "uploads": uploads,
         "last_session": uploads.first(),
@@ -910,7 +910,7 @@ def pilotstats_dashboard(request) -> str:
             character__in=owned, is_victim=False, killmail__killmail_time__gte=since,
         ).values("killmail_id").distinct().count()
     )
-    rows = leaderboard_rows("7d", "damage_out")
+    rows = cached_leaderboard_rows("7d", "damage_out")
     return render_to_string("pilotstats/dashboard_widget.html", {
         "damage_out": totals["damage_out"] or 0,
         "reps_given": totals["reps_given"] or 0,

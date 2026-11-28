@@ -170,6 +170,7 @@ Optional, in `local.py`:
 |---|---|---|
 | `PILOTSTATS_SCANNER_UPLOADS_PER_MINUTE` | `30` | Most uploads one user's folder scanner (or multi-file drop) may send per minute. Over it, the server answers 429 and the scanner waits. `0` turns the limit off. The plain upload form is never limited. |
 | `PILOTSTATS_SCANNER_RECENT_DAYS` | `7` | The scanner only sends logs modified in the last N days unless "include older logs" is ticked. |
+| `PILOTSTATS_LEADERBOARD_CACHE_SECONDS` | `300` | Seconds a computed leaderboard is kept in Auth's cache. New sessions, payouts and killmails clear it right away; this bounds how long other changes (a renamed character) take to show. `0` turns caching off. |
 | `PILOTSTATS_ESI_COMPATIBILITY_DATE` | `"2026-11-19"` | ESI compatibility date sent on every call. Bump it only after checking CCP's ESI changelog. |
 | `PILOTSTATS_PAYOUT_RETENTION_DAYS` | `35` | Days itemized payout lines are kept (daily totals are kept longer). |
 | `PILOTSTATS_SESSION_LINK_MINUTES` | `15` | How far before and after a session kills and fleet hulls are matched to it. |
