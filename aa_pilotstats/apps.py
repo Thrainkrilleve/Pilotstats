@@ -27,3 +27,6 @@ class PilotstatsConfig(AppConfig):
     def ready(self):
         # Register system checks.
         from . import checks  # noqa: F401
+        from . import signals
+
+        signals.connect()
