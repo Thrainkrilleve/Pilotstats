@@ -911,13 +911,17 @@ def pilotstats_dashboard(request) -> str:
         ).values("killmail_id").distinct().count()
     )
     rows = cached_leaderboard_rows("7d", "damage_out")
+    rank = rank_of(rows, user)
+    my_row = rows[rank - 1] if rank else {}
     return render_to_string("pilotstats/dashboard_widget.html", {
         "damage_out": totals["damage_out"] or 0,
         "reps_given": totals["reps_given"] or 0,
         "upload_count": totals["upload_count"],
         "payout_isk": payout_isk,
+        "wallet_connected": my_row.get("wallet_connected", False),
+        "isk_per_hour": my_row.get("isk_per_hour"),
         "kills": kills,
         "last_session": last,
-        "rank": rank_of(rows, user),
+        "rank": rank,
         "can_upload": user.has_perm("pilotstats.basic_access"),
     }, request=request)

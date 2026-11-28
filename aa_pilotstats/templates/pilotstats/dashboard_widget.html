@@ -1,62 +1,59 @@
 {% load i18n pilotstats %}
 
+{# A plain .card, like Alliance Auth's own widgets: the dashboard isn't inside #}
+{# Pilot Stats' pages, so bg-body-tertiary would be light on Darkly.        #}
 <div id="aa-dashboard-panel-pilotstats" class="col-12 mb-3">
-    <div class="card bg-body-tertiary text-body h-100">
+    <div class="card h-100">
         <div class="card-body">
             {% translate "Pilot Stats — Last 7 Days" as widget_title %}
             {% include "framework/dashboard/widget-title.html" with title=widget_title %}
-            {% if upload_count %}
-            <div class="d-flex justify-content-around text-center my-2 flex-wrap gap-2">
-                <div>
-                    <div class="fs-4 fw-bold text-info">{{ damage_out }}</div>
-                    <div class="small text-body-secondary">{% trans "Damage Dealt" %}</div>
+            {% if upload_count or payout_isk or kills %}
+            <div class="row row-cols-2 row-cols-lg-5 g-3 text-center mb-3">
+                <div class="col">
+                    <div class="fs-4 fw-bold text-info">{{ damage_out|floatformat:"0g" }}</div>
+                    <div class="small text-body-secondary">{% trans "Damage dealt" %}</div>
                 </div>
-                <div>
-                    <div class="fs-4 fw-bold text-warning">{{ reps_given }}</div>
-                    <div class="small text-body-secondary">{% trans "Reps Given" %}</div>
+                <div class="col">
+                    <div class="fs-4 fw-bold text-warning">{{ reps_given|floatformat:"0g" }}</div>
+                    <div class="small text-body-secondary">{% trans "Reps given" %}</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold">{% if wallet_connected or payout_isk %}{{ payout_isk|isk }}{% else %}—{% endif %}</div>
+                    <div class="small text-body-secondary">{% trans "Payouts" %}</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold">{% if isk_per_hour is not None %}{{ isk_per_hour|isk }}{% else %}—{% endif %}</div>
+                    <div class="small text-body-secondary">{% trans "ISK per hour" %}</div>
+                </div>
+                <div class="col">
+                    <div class="fs-4 fw-bold">{{ kills }}</div>
+                    <div class="small text-body-secondary">{% trans "Kills" %}</div>
                 </div>
             </div>
             {% else %}
-            <p class="text-body-secondary text-center mb-2">{% trans "No combat logs in the last 7 days." %}</p>
+            <p class="text-body-secondary text-center mb-3">{% trans "No combat logs in the last 7 days." %}</p>
             {% endif %}
-            {% if payout_isk or kills %}
-            <div class="d-flex justify-content-around text-center my-2 flex-wrap gap-2">
-                {% if payout_isk %}
-                <div>
-                    <div class="fs-5 fw-bold">{{ payout_isk|isk }}</div>
-                    <div class="small text-body-secondary">{% trans "Payouts" %}</div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+                <div class="text-body-secondary">
+                    {% if last_session %}
+                    {% trans "Last session" %}:
+                    <a href="{% url 'pilotstats:session' last_session.pk %}">{{ last_session.character.character_name }}</a>
+                    {% if last_session.session_started and last_session.session_ended %}· {{ last_session.duration_display }}{% endif %}
+                    {% endif %}
+                    {% if rank %}
+                    {% if last_session %}·{% endif %}
+                    {% blocktrans %}7-day damage rank #{{ rank }}{% endblocktrans %}
+                    {% endif %}
                 </div>
-                {% endif %}
-                {% if kills %}
                 <div>
-                    <div class="fs-5 fw-bold">{{ kills }}</div>
-                    <div class="small text-body-secondary">{% trans "Kills" %}</div>
+                    <a href="{% url 'pilotstats:leaderboard' %}" class="text-body-secondary text-decoration-none">
+                        {% trans "View leaderboard" %} <i class="fas fa-arrow-right fa-xs"></i>
+                    </a>
+                    {% if can_upload %}
+                    ·
+                    <a href="{% url 'pilotstats:upload' %}" class="text-body-secondary text-decoration-none">{% trans "Upload" %}</a>
+                    {% endif %}
                 </div>
-                {% endif %}
-            </div>
-            {% endif %}
-            {% if last_session %}
-            <div class="small text-body-secondary text-center">
-                {% trans "Last session" %}:
-                <a href="{% url 'pilotstats:session' last_session.pk %}">{{ last_session.character.character_name }}</a>
-                {% if last_session.session_started and last_session.session_ended %}
-                · {{ last_session.duration_display }}
-                {% endif %}
-            </div>
-            {% endif %}
-            {% if rank %}
-            <div class="small text-center mt-1">{% blocktrans %}7-day damage rank #{{ rank }}{% endblocktrans %}</div>
-            {% endif %}
-            <div class="text-end mt-2">
-                <a href="{% url 'pilotstats:leaderboard' %}" class="small text-body-secondary text-decoration-none">
-                    {% trans "View leaderboard" %} <i class="fas fa-arrow-right fa-xs"></i>
-                </a>
-                {% if can_upload %}
-                ·
-                <a href="{% url 'pilotstats:upload' %}" class="small text-body-secondary text-decoration-none">
-                    {% trans "Upload" %}
-                </a>
-                {% endif %}
             </div>
         </div>
     </div>

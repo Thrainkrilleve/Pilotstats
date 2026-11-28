@@ -27,6 +27,16 @@
     background-color: var(--bs-dark) !important;
 }
 
+/* Darkly also keeps Bootstrap's light-mode "-text-emphasis" colors (dark
+   brown for warning), which vanish on its dark surfaces. Use the plain
+   theme colors there instead. */
+[data-theme="darkly"] .pilotstats-app {
+    --pstats-isk: var(--bs-warning);
+}
+
+[data-theme="darkly"] .pilotstats-app .pstats-scan-list .is-ok { color: var(--bs-success); }
+[data-theme="darkly"] .pilotstats-app .pstats-scan-list .is-error { color: var(--bs-danger); }
+
 /* ---- Dropzone -------------------------------------------------------- */
 
 .pilotstats-app #pilotstats-dropzone {
@@ -242,8 +252,36 @@
 
 /* ---- Leaderboard --------------------------------------------------------- */
 
-.pilotstats-app tr[data-bs-toggle="collapse"]:hover {
-    background-color: var(--bs-tertiary-bg);
+.pilotstats-app .pstats-row-toggle { cursor: pointer; }
+
+.pstats-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.pstats-chevron { transition: transform 0.15s ease; }
+.pstats-row-toggle[aria-expanded="true"] .pstats-chevron { transform: rotate(180deg); }
+
+/* Expanded per-character / per-payout rows: real rows of the same table, so
+   their numbers line up under the column headers. Bootstrap's .table sets
+   every cell's color, so the column colors need the extra specificity. */
+.pilotstats-app .table > tbody > tr.pstats-detail > td {
+    font-size: 0.875rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    border-bottom-width: 0;
+}
+.pilotstats-app .table > tbody > tr.pstats-detail > td.pstats-col-out { color: var(--pstats-out); }
+.pilotstats-app .table > tbody > tr.pstats-detail > td.pstats-col-in { color: var(--pstats-in); }
+.pilotstats-app .table > tbody > tr.pstats-detail > td.pstats-col-rep { color: var(--pstats-rep); }
+.pilotstats-app .table > tbody > tr.pstats-detail > td.pstats-col-isk { color: var(--pstats-isk); }
+
+/* Outline buttons (filters, sorts, CSV). btn-outline-secondary's text is the theme's
+   secondary color, which is close to the background on dark themes. */
+.pilotstats-app .btn-outline-secondary:not(.active) {
+    --bs-btn-color: var(--bs-secondary-color);
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-hover-color: var(--bs-body-color);
 }
 
 .pstats-rank {

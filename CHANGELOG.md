@@ -42,6 +42,11 @@ Run `migrate` (adds `0004_combatlogupload_payout_isk`, `0005_combatlogupload_tim
   - **When it clears:** right away, once a new or deleted session, wallet pull, killmail, wallet opt-out, or change of main is saved.
   - **How long it's kept:** otherwise up to 5 minutes (`PILOTSTATS_LEADERBOARD_CACHE_SECONDS`, `0` turns it off), so a renamed character shows its new name within that time.
   - **Where:** Alliance Auth's own cache (Redis). Nothing to set up. The Discord daily post still reads the live numbers.
+- **Leaderboard and dashboard fixes.**
+  - **Dashboard widget:** it's now a plain card like Alliance Auth's own widgets, so it's readable on Darkly (it was white text on a light card). It shows damage dealt, reps given, payouts, ISK per hour and kills in one row, with the last session and rank below.
+  - **Expanded rows:** each pilot's characters and payout types, and each corporation's pilots, are now rows of the same table, so their numbers sit under the right column headers.
+  - **Darkly colors:** payout amounts and the filter, sort and CSV buttons were nearly invisible on Darkly. Both now use readable colors.
+  - **Numbers:** large numbers on the leaderboard and dashboard have thousands separators.
 
 ## v0.1.1
 
