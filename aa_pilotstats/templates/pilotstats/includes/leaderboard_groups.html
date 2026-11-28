@@ -26,7 +26,8 @@
             </thead>
             <tbody>
                 {% for row in groups %}
-                <tr data-bs-toggle="collapse" data-bs-target="#group-{{ forloop.counter }}" style="cursor:pointer;">
+                <tr data-bs-toggle="collapse" data-bs-target=".pstats-group-{{ forloop.counter }}"
+                    aria-expanded="false" class="pstats-row-toggle">
                     <td>
                         {% if row.known %}
                         <span class="pstats-rank {% if forloop.counter <= 3 %}rank-{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
@@ -36,40 +37,42 @@
                         <span class="text-body-secondary" title="{% trans 'Pilots without a main character, and characters nobody on Auth owns' %}">{% trans "Unknown" %}</span>
                         {% endif %}
                     </td>
-                    <td class="text-end">{{ row.pilot_count }}</td>
-                    <td class="text-end pstats-col-out">{{ row.damage_out|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-in">{{ row.damage_in|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-rep">{{ row.reps_received_total|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-rep">{{ row.reps_given_total|floatformat:0 }}</td>
+                    <td class="text-end pstats-num">{{ row.pilot_count }}</td>
+                    <td class="text-end pstats-num">{{ row.damage_out|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.damage_in|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.reps_received_total|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.reps_given_total|floatformat:"0g" }}</td>
                     {% if not activity %}
-                    <td class="text-end pstats-col-isk pstats-col-sep">{% if row.payout_isk or row.wallet_connected %}{{ row.payout_isk|isk }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+                    <td class="text-end pstats-num pstats-col-sep">{% if row.payout_isk or row.wallet_connected %}{{ row.payout_isk|isk }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
                     {% endif %}
-                    <td class="text-end pstats-col-isk{% if activity %} pstats-col-sep{% endif %}">{% if row.isk_per_hour is not None %}{{ row.isk_per_hour|isk }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+                    <td class="text-end pstats-num{% if activity %} pstats-col-sep{% endif %}">{% if row.isk_per_hour is not None %}{{ row.isk_per_hour|isk }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
                     {% if not activity %}
-                    <td class="text-end">{% if row.rats_killed or row.wallet_connected %}{{ row.rats_killed|floatformat:0 }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
-                    <td class="text-end pstats-col-sep">{{ row.kills }} / {{ row.losses }}</td>
-                    <td class="text-end small">{{ row.isk_destroyed|isk }} / {{ row.isk_lost|isk }}</td>
+                    <td class="text-end pstats-num">{% if row.rats_killed or row.wallet_connected %}{{ row.rats_killed|floatformat:"0g" }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+                    <td class="text-end pstats-num pstats-col-sep">{{ row.kills }} / {{ row.losses }}</td>
+                    <td class="text-end pstats-num">{{ row.isk_destroyed|isk }} / {{ row.isk_lost|isk }}</td>
                     {% endif %}
-                    <td class="text-end"><i class="fas fa-chevron-down fa-xs text-body-secondary"></i></td>
+                    <td class="text-end"><i class="fas fa-chevron-down fa-xs text-body-secondary pstats-chevron"></i></td>
                 </tr>
-                <tr class="pstats-detail-row">
-                    <td colspan="{% if activity %}8{% else %}12{% endif %}" class="p-0 border-0">
-                        <div class="collapse" id="group-{{ forloop.counter }}">
-                            <table class="pstats-detail-table bg-body-tertiary text-body">
-                                <tbody>
-                                    {% for pilot in row.pilots %}
-                                    <tr>
-                                        <td class="ps-4 text-body-secondary">{{ pilot.label }}</td>
-                                        <td class="text-end pstats-col-out">{{ pilot.damage_out|floatformat:0 }}</td>
-                                        <td class="text-end pstats-col-rep">{{ pilot.reps_given_total|floatformat:0 }}</td>
-                                        <td class="text-end pstats-col-isk">{% if pilot.isk_per_hour is not None %}{{ pilot.isk_per_hour|isk }}/h{% endif %}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
+                {% for pilot in row.pilots %}
+                <tr class="collapse pstats-detail pstats-group-{{ forloop.parentloop.counter }}">
+                    <td class="ps-5 text-body-secondary">{{ pilot.label }}</td>
+                    <td></td>
+                    <td class="text-end pstats-num pstats-col-out">{{ pilot.damage_out|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-in">{{ pilot.damage_in|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-rep">{{ pilot.reps_received_total|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-rep">{{ pilot.reps_given_total|floatformat:"0g" }}</td>
+                    {% if not activity %}
+                    <td class="text-end pstats-num pstats-col-isk pstats-col-sep">{% if pilot.payout_isk or pilot.wallet_connected %}{{ pilot.payout_isk|isk }}{% endif %}</td>
+                    {% endif %}
+                    <td class="text-end pstats-num pstats-col-isk{% if activity %} pstats-col-sep{% endif %}">{% if pilot.isk_per_hour is not None %}{{ pilot.isk_per_hour|isk }}{% endif %}</td>
+                    {% if not activity %}
+                    <td class="text-end pstats-num">{% if pilot.rats_killed %}{{ pilot.rats_killed|floatformat:"0g" }}{% endif %}</td>
+                    <td class="text-end pstats-num pstats-col-sep">{% if pilot.kills or pilot.losses %}{{ pilot.kills }} / {{ pilot.losses }}{% endif %}</td>
+                    <td></td>
+                    {% endif %}
+                    <td></td>
                 </tr>
+                {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

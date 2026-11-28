@@ -75,7 +75,8 @@
             </thead>
             <tbody>
                 {% for row in rows %}
-                <tr data-bs-toggle="collapse" data-bs-target="#row-{{ forloop.counter }}" style="cursor:pointer;">
+                <tr data-bs-toggle="collapse" data-bs-target=".pstats-detail-{{ forloop.counter }}"
+                    aria-expanded="false" class="pstats-row-toggle">
                     <td>
                         <span class="pstats-rank {% if forloop.counter <= 3 %}rank-{{ forloop.counter }}{% endif %}">{{ forloop.counter }}</span>
                         {{ row.label }}
@@ -83,51 +84,49 @@
                         <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ row.by_character|length }} {% trans "characters" %}</span>
                         {% endif %}
                     </td>
-                    <td class="text-end pstats-col-out">{{ row.damage_out|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-in">{{ row.damage_in|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-rep">{{ row.reps_received_total|floatformat:0 }}</td>
-                    <td class="text-end pstats-col-rep">{{ row.reps_given_total|floatformat:0 }}</td>
+                    <td class="text-end pstats-num">{{ row.damage_out|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.damage_in|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.reps_received_total|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num">{{ row.reps_given_total|floatformat:"0g" }}</td>
                     {% if not activity %}
-                    <td class="text-end pstats-col-isk pstats-col-sep">
+                    <td class="text-end pstats-num pstats-col-sep">
                         {% if row.payout_isk or row.wallet_connected %}{{ row.payout_isk|isk }}{% else %}<span class="text-body-secondary" title="{% trans 'No wallet connected' %}">—</span>{% endif %}
                     </td>
                     {% endif %}
-                    <td class="text-end pstats-col-isk{% if activity %} pstats-col-sep{% endif %}">{% if row.isk_per_hour is not None %}{{ row.isk_per_hour|isk }}{% else %}<span class="text-body-secondary" title="{% trans 'Needs a connected wallet and a logged session of 10 minutes or more' %}">—</span>{% endif %}</td>
+                    <td class="text-end pstats-num{% if activity %} pstats-col-sep{% endif %}">{% if row.isk_per_hour is not None %}{{ row.isk_per_hour|isk }}{% else %}<span class="text-body-secondary" title="{% trans 'Needs a connected wallet and a logged session of 10 minutes or more' %}">—</span>{% endif %}</td>
                     {% if not activity %}
-                    <td class="text-end">{% if row.rats_killed or row.wallet_connected %}{{ row.rats_killed|floatformat:0 }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
-                    <td class="text-end pstats-col-sep">{{ row.kills }} / {{ row.losses }}</td>
-                    <td class="text-end small">{{ row.isk_destroyed|isk }} / {{ row.isk_lost|isk }}</td>
-                    <td class="text-end">{{ row.km_damage|floatformat:0 }}</td>
+                    <td class="text-end pstats-num">{% if row.rats_killed or row.wallet_connected %}{{ row.rats_killed|floatformat:"0g" }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+                    <td class="text-end pstats-num pstats-col-sep">{{ row.kills }} / {{ row.losses }}</td>
+                    <td class="text-end pstats-num">{{ row.isk_destroyed|isk }} / {{ row.isk_lost|isk }}</td>
+                    <td class="text-end pstats-num">{{ row.km_damage|floatformat:"0g" }}</td>
                     {% endif %}
-                    <td class="text-end"><i class="fas fa-chevron-down fa-xs text-body-secondary"></i></td>
+                    <td class="text-end"><i class="fas fa-chevron-down fa-xs text-body-secondary pstats-chevron"></i></td>
                 </tr>
-                <tr class="pstats-detail-row">
-                    <td colspan="{% if activity %}7{% else %}12{% endif %}" class="p-0 border-0">
-                        <div class="collapse" id="row-{{ forloop.counter }}">
-                            <table class="pstats-detail-table bg-body-tertiary text-body">
-                                <tbody>
-                                    {% for char_name, stats in row.by_character %}
-                                    <tr>
-                                        <td class="ps-4 text-body-secondary">{{ char_name }}</td>
-                                        <td class="text-end pstats-col-out">{{ stats.damage_out|floatformat:0 }}</td>
-                                        <td class="text-end pstats-col-in">{{ stats.damage_in|floatformat:0 }}</td>
-                                        <td class="text-end pstats-col-rep">{{ stats.reps_received_total|floatformat:0 }}</td>
-                                        <td class="text-end pstats-col-rep">{{ stats.reps_given_total|floatformat:0 }}</td>
-                                        <td></td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% for entry_type, amount in row.payout_by_type.items %}
-                                    <tr>
-                                        <td class="ps-4 text-body-secondary">{{ payout_labels|get_item:entry_type|default:entry_type }}</td>
-                                        <td colspan="4" class="text-end pstats-col-isk">{{ amount|isk }}</td>
-                                        <td></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
+                {% for char_name, stats in row.by_character %}
+                <tr class="collapse pstats-detail pstats-detail-{{ forloop.parentloop.counter }}">
+                    <td class="ps-5 text-body-secondary">{{ char_name }}</td>
+                    <td class="text-end pstats-num pstats-col-out">{{ stats.damage_out|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-in">{{ stats.damage_in|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-rep">{{ stats.reps_received_total|floatformat:"0g" }}</td>
+                    <td class="text-end pstats-num pstats-col-rep">{{ stats.reps_given_total|floatformat:"0g" }}</td>
+                    {% if activity %}
+                    <td class="pstats-col-sep"></td>
+                    {% else %}
+                    <td class="pstats-col-sep"></td><td></td><td></td><td class="pstats-col-sep"></td><td></td><td></td>
+                    {% endif %}
+                    <td></td>
                 </tr>
+                {% endfor %}
+                {% if not activity %}
+                {% for entry_type, amount in row.payout_by_type.items %}
+                <tr class="collapse pstats-detail pstats-detail-{{ forloop.parentloop.counter }}">
+                    <td class="ps-5 text-body-secondary">{{ payout_labels|get_item:entry_type|default:entry_type }}</td>
+                    <td></td><td></td><td></td><td></td>
+                    <td class="text-end pstats-num pstats-col-isk pstats-col-sep">{{ amount|isk }}</td>
+                    <td></td><td></td><td class="pstats-col-sep"></td><td></td><td></td><td></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
